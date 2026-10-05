@@ -1,0 +1,16 @@
+# Example eval suite. Run fully offline with:
+#   evalkit run examples/evals.yaml --provider dict --fixtures examples/fixtures.json
+- name: greets-by-name
+  prompt: "Greet Ada warmly in one sentence."
+  expected: "Ada"
+  judge: contains
+
+- name: exact-format
+  prompt: "Reply with exactly: OK"
+  expected: "OK"
+  judge: exact
+
+- name: numeric-answer
+  prompt: "Answer with a number between 1 and 10."
+  expected: "^\\d+$"
+  judge: regex
