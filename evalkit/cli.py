@@ -51,6 +51,29 @@ def cmd_run(args) -> int:
     return 0 if summary["failed"] == 0 else 1
 
 
+def cmd_validate(args) -> int:
+    """Check a suite file for problems without running any provider."""
+    try:
+        cases = load_suite(args.suite)
+    except (OSError, ValueError) as exc:
+        raise SystemExit(f"evalkit: {exc}") from exc
+    warnings: list[str] = []
+    seen: set[str] = set()
+    for case in cases:
+        if case.name in seen:
+            warnings.append(f"duplicate case name {case.name!r}")
+        seen.add(case.name)
+        if case.expected == "" and case.judge in ("contains", "exact"):
+            warnings.append(
+                f"[{case.name}] empty 'expected' with judge {case.judge!r}: "
+                "the case always passes"
+            )
+    print(f"{args.suite}: {len(cases)} case(s) OK")
+    for warning in warnings:
+        print(f"warning: {warning}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="evalkit",
@@ -76,6 +99,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run.add_argument("--report", help="Write a JSON report to this path.")
     run.set_defaults(func=cmd_run)
+    validate = sub.add_parser(
+        "validate", help="Check a suite file without running any provider."
+    )
+    validate.add_argument("suite", help="Path to a YAML eval suite.")
+    validate.set_defaults(func=cmd_validate)
     return parser
 
 
