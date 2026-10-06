@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Union
@@ -24,12 +25,23 @@ class EvalCase:
                 f"Case {self.name!r} uses unknown judge {self.judge!r}. "
                 f"Choose from: {sorted(JUDGES)}"
             )
+        if self.judge == "regex":
+            try:
+                re.compile(self.expected)
+            except re.error as exc:
+                raise ValueError(
+                    f"Case {self.name!r} has an invalid regex pattern "
+                    f"{self.expected!r}: {exc}"
+                ) from exc
 
 
 def load_suite(path: Union[str, Path]) -> list[EvalCase]:
     """Load a YAML eval suite file into a list of EvalCase objects."""
     path = Path(path)
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise ValueError(f"Invalid YAML in suite {path}: {exc}") from exc
     if not isinstance(data, list):
         raise ValueError(
             f"Eval suite must be a YAML list of cases, got {type(data).__name__}: {path}"
