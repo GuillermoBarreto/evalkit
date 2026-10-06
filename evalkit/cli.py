@@ -26,8 +26,14 @@ def _build_provider(args):
 
 
 def cmd_run(args) -> int:
-    provider = _build_provider(args)
-    cases = load_suite(args.suite)
+    try:
+        provider = _build_provider(args)
+    except (OSError, ValueError, RuntimeError) as exc:
+        raise SystemExit(f"evalkit: {exc}") from exc
+    try:
+        cases = load_suite(args.suite)
+    except (OSError, ValueError) as exc:
+        raise SystemExit(f"evalkit: {exc}") from exc
     results = run_suite(cases, provider)
     summary = summarize(results)
     for r in results:
