@@ -40,3 +40,22 @@ def test_cli_exit_code_is_one_on_failure(tmp_path):
     suite, fixtures = _write_suite_and_fixtures(tmp_path, expected="bye")
     code = main(["run", str(suite), "--provider", "dict", "--fixtures", str(fixtures)])
     assert code == 1
+
+
+def test_missing_suite_file_exits_cleanly(tmp_path):
+    import pytest
+
+    with pytest.raises(SystemExit) as excinfo:
+        main(["run", str(tmp_path / "nope.yaml"), "--provider", "echo"])
+    assert "nope.yaml" in str(excinfo.value)
+
+
+def test_missing_api_key_exits_cleanly(tmp_path, monkeypatch):
+    import pytest
+
+    monkeypatch.delenv("EVALKIT_API_KEY", raising=False)
+    suite = tmp_path / "evals.yaml"
+    suite.write_text("- name: a\n  prompt: hi\n  expected: hi\n  judge: contains\n")
+    with pytest.raises(SystemExit) as excinfo:
+        main(["run", str(suite), "--provider", "openai-compatible"])
+    assert "EVALKIT_API_KEY" in str(excinfo.value)
