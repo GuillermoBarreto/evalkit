@@ -42,3 +42,19 @@ def test_unknown_judge_rejected_at_load(tmp_path):
     suite.write_text("- name: c\n  prompt: Say hi.\n  judge: vibes\n")
     with pytest.raises(ValueError, match="vibes"):
         load_suite(suite)
+
+
+def test_invalid_regex_rejected_at_load(tmp_path):
+    suite = tmp_path / "evals.yaml"
+    suite.write_text(
+        "- name: bad-regex\n  prompt: Say hi.\n  expected: '([unclosed'\n  judge: regex\n"
+    )
+    with pytest.raises(ValueError, match="invalid regex pattern"):
+        load_suite(suite)
+
+
+def test_invalid_yaml_raises_value_error(tmp_path):
+    suite = tmp_path / "evals.yaml"
+    suite.write_text("- name: [\n  this is not: [valid\n")
+    with pytest.raises(ValueError, match="Invalid YAML"):
+        load_suite(suite)
