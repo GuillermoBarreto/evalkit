@@ -59,3 +59,31 @@ def test_missing_api_key_exits_cleanly(tmp_path, monkeypatch):
     with pytest.raises(SystemExit) as excinfo:
         main(["run", str(suite), "--provider", "openai-compatible"])
     assert "EVALKIT_API_KEY" in str(excinfo.value)
+
+
+def test_validate_ok_suite(tmp_path, capsys):
+    suite = tmp_path / "evals.yaml"
+    suite.write_text("- name: a\n  prompt: hi\n  expected: hi\n  judge: contains\n")
+    assert main(["validate", str(suite)]) == 0
+    assert "1 case(s) OK" in capsys.readouterr().out
+
+
+def test_validate_warns_on_empty_expected_and_duplicates(tmp_path, capsys):
+    suite = tmp_path / "evals.yaml"
+    suite.write_text(
+        "- name: a\n  prompt: hi\n"
+        "- name: a\n  prompt: yo\n  expected: yo\n  judge: contains\n"
+    )
+    assert main(["validate", str(suite)]) == 0
+    out = capsys.readouterr().out
+    assert "empty 'expected'" in out
+    assert "duplicate case name" in out
+
+
+def test_validate_rejects_bad_suite(tmp_path):
+    import pytest
+
+    suite = tmp_path / "evals.yaml"
+    suite.write_text("- name: b\n  prompt: hi\n  judge: vibes\n")
+    with pytest.raises(SystemExit):
+        main(["validate", str(suite)])
