@@ -64,8 +64,20 @@ Try the bundled example with no setup:
 evalkit run examples/evals.yaml --provider dict --fixtures examples/fixtures.json
 ```
 
+Lint a suite without spending any model calls — duplicate names, empty
+`expected` values that always pass, and unknown judges:
+
+```bash
+evalkit validate suite.yaml
+evalkit validate suite.yaml --strict   # exit 1 on warnings, for CI
+```
+
+Reports written with `--report` include a per-judge breakdown (`by_judge`)
+in the summary, so you can see which judge type is failing most.
+
 ## Roadmap
 
+- [x] Suite linting via `evalkit validate`
 - Retries with backoff and per-case timeouts
 - JSONL datasets and dataset transforms
 - Run diffing: compare two reports to catch regressions
