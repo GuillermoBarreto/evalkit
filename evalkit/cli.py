@@ -71,6 +71,12 @@ def cmd_validate(args) -> int:
     print(f"{args.suite}: {len(cases)} case(s) OK")
     for warning in warnings:
         print(f"warning: {warning}")
+    if warnings and args.strict:
+        print(
+            f"evalkit: {len(warnings)} warning(s) found; failing due to --strict",
+            file=sys.stderr,
+        )
+        return 1
     return 0
 
 
@@ -103,6 +109,11 @@ def build_parser() -> argparse.ArgumentParser:
         "validate", help="Check a suite file without running any provider."
     )
     validate.add_argument("suite", help="Path to a YAML eval suite.")
+    validate.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit 1 when any warnings are found (useful in CI).",
+    )
     validate.set_defaults(func=cmd_validate)
     return parser
 
