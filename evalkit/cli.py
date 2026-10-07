@@ -19,6 +19,12 @@ def _build_provider(args):
         if not args.fixtures:
             raise SystemExit("The dict provider needs --fixtures <fixtures.json>.")
         mapping = json.loads(Path(args.fixtures).read_text(encoding="utf-8"))
+        if not isinstance(mapping, dict):
+            raise SystemExit(
+                "The dict provider needs a JSON object mapping prompts to "
+                f"outputs; {args.fixtures} contains "
+                f"{type(mapping).__name__} instead."
+            )
         return DictProvider(mapping)
     if args.provider == "openai-compatible":
         return OpenAICompatibleProvider(model=args.model)
