@@ -100,3 +100,14 @@ def test_validate_strict_passes_on_clean_suite(tmp_path):
     suite = tmp_path / "evals.yaml"
     suite.write_text("- name: a\n  prompt: hi\n  expected: hi\n  judge: contains\n")
     assert main(["validate", str(suite), "--strict"]) == 0
+
+
+def test_dict_provider_rejects_non_mapping_fixtures(tmp_path):
+    import pytest
+
+    suite, _ = _write_suite_and_fixtures(tmp_path)
+    bad = tmp_path / "bad.json"
+    bad.write_text('["not", "a", "mapping"]')
+    with pytest.raises(SystemExit) as excinfo:
+        main(["run", str(suite), "--provider", "dict", "--fixtures", str(bad)])
+    assert "JSON object" in str(excinfo.value)
