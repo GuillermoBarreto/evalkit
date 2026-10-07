@@ -58,3 +58,15 @@ def test_echo_provider_smoke():
         EchoProvider(),
     )
     assert result.passed
+
+
+def test_summarize_includes_per_judge_breakdown():
+    summary = summarize(run_suite(CASES, DictProvider(MAPPING)))
+    assert summary["by_judge"] == {
+        "contains": {"total": 2, "passed": 1},
+        "exact": {"total": 1, "passed": 1},
+    }
+
+
+def test_summarize_by_judge_empty_for_no_results():
+    assert summarize([])["by_judge"] == {}
