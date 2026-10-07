@@ -59,6 +59,12 @@ def summarize(results: list[EvalResult]) -> dict:
     total = len(results)
     passed = sum(1 for r in results if r.passed)
     latencies = [r.latency_ms for r in results]
+    by_judge: dict[str, dict[str, int]] = {}
+    for r in results:
+        bucket = by_judge.setdefault(r.judge, {"total": 0, "passed": 0})
+        bucket["total"] += 1
+        if r.passed:
+            bucket["passed"] += 1
     return {
         "total": total,
         "passed": passed,
@@ -67,4 +73,5 @@ def summarize(results: list[EvalResult]) -> dict:
         "avg_latency_ms": (
             round(sum(latencies) / len(latencies), 2) if latencies else 0.0
         ),
+        "by_judge": by_judge,
     }
