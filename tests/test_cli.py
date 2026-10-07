@@ -87,3 +87,16 @@ def test_validate_rejects_bad_suite(tmp_path):
     suite.write_text("- name: b\n  prompt: hi\n  judge: vibes\n")
     with pytest.raises(SystemExit):
         main(["validate", str(suite)])
+
+
+def test_validate_strict_fails_on_warnings(tmp_path, capsys):
+    suite = tmp_path / "evals.yaml"
+    suite.write_text("- name: a\n  prompt: hi\n- name: a\n  prompt: yo\n  expected: yo\n  judge: contains\n")
+    assert main(["validate", str(suite), "--strict"]) == 1
+    assert "failing due to --strict" in capsys.readouterr().err
+
+
+def test_validate_strict_passes_on_clean_suite(tmp_path):
+    suite = tmp_path / "evals.yaml"
+    suite.write_text("- name: a\n  prompt: hi\n  expected: hi\n  judge: contains\n")
+    assert main(["validate", str(suite), "--strict"]) == 0
