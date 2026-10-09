@@ -3,7 +3,7 @@
 from .cases import EvalCase, load_suite
 from .judges import JUDGES, evaluate
 from .providers import DictProvider, EchoProvider, OpenAICompatibleProvider, Provider
-from .runner import EvalResult, run_suite, summarize
+from .runner import EvalResult, diff_reports, run_suite, summarize
 
 __version__ = "0.1.0"
 
@@ -19,4 +19,5 @@ __all__ = [
     "EvalResult",
     "run_suite",
     "summarize",
+    "diff_reports",
 ]
