@@ -72,14 +72,27 @@ evalkit validate suite.yaml
 evalkit validate suite.yaml --strict   # exit 1 on warnings, for CI
 ```
 
+Compare two runs to catch regressions after a model swap, prompt tweak, or
+dependency upgrade:
+
+```bash
+evalkit run suite.yaml --provider dict --fixtures fixtures.json --report new.json
+evalkit diff old.json new.json
+```
+
+`diff` prints which cases regressed (passed → failed), which got fixed,
+and any added or removed cases, plus the pass-rate delta. It exits `1`
+when there are regressions and `0` otherwise, so it works as a CI gate —
+save the report from your last known-good run as the baseline.
+
 Reports written with `--report` include a per-judge breakdown (`by_judge`)
 in the summary, so you can see which judge type is failing most.
 
 ## Roadmap
 
 - [x] Suite linting via `evalkit validate`
+- [x] Run diffing: compare two reports to catch regressions (`evalkit diff`)
 - Retries with backoff and per-case timeouts
 - JSONL datasets and dataset transforms
-- Run diffing: compare two reports to catch regressions
 - LLM-as-judge providers
 - Parallel case execution and cost/latency tracking

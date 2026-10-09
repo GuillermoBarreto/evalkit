@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .cases import load_suite
 from .providers import DictProvider, EchoProvider, OpenAICompatibleProvider
-from .runner import run_suite, summarize
+from .runner import diff_reports, run_suite, summarize
 
 
 def _build_provider(args):
@@ -86,6 +86,50 @@ def cmd_validate(args) -> int:
     return 0
 
 
+def _load_report(path: str) -> dict:
+    """Load a ``--report`` JSON file, validating its shape."""
+    try:
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise SystemExit(f"evalkit: cannot read report {path}: {exc}") from exc
+    except ValueError as exc:
+        raise SystemExit(f"evalkit: invalid JSON in report {path}: {exc}") from exc
+    if not isinstance(payload, dict) or not isinstance(payload.get("results"), list):
+        raise SystemExit(
+            f"evalkit: {path} is not an evalkit report (missing 'results' list)"
+        )
+    for i, result in enumerate(payload["results"]):
+        if (
+            not isinstance(result, dict)
+            or "case" not in result
+            or "passed" not in result
+        ):
+            raise SystemExit(
+                f"evalkit: {path} result #{i} is missing 'case' or 'passed'"
+            )
+    return payload
+
+
+def cmd_diff(args) -> int:
+    """Compare two run reports and highlight regressions."""
+    old = _load_report(args.old_report)
+    new = _load_report(args.new_report)
+    diff = diff_reports(old, new)
+
+    def _section(title: str, names: list[str]) -> None:
+        print(f"{title}: {len(names)}")
+        for name in names:
+            print(f"  - {name}")
+
+    print(f"Comparing {args.old_report} -> {args.new_report}")
+    _section("Regressions (passed -> failed)", diff["regressions"])
+    _section("Fixed (failed -> passed)", diff["improvements"])
+    _section("New cases", diff["added"])
+    _section("Removed cases", diff["removed"])
+    print(f"Pass rate: {diff['old_pass_rate']:.0%} -> {diff['new_pass_rate']:.0%}")
+    return 1 if diff["regressions"] else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="evalkit",
@@ -121,6 +165,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Exit 1 when any warnings are found (useful in CI).",
     )
     validate.set_defaults(func=cmd_validate)
+    diff = sub.add_parser(
+        "diff", help="Compare two run reports to catch regressions."
+    )
+    diff.add_argument("old_report", help="Baseline report JSON (from --report).")
+    diff.add_argument(
+        "new_report", help="New report JSON to compare against the baseline."
+    )
+    diff.set_defaults(func=cmd_diff)
     return parser
 
 

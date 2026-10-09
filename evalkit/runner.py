@@ -75,3 +75,39 @@ def summarize(results: list[EvalResult]) -> dict:
         ),
         "by_judge": by_judge,
     }
+
+
+def _pass_rate(results: dict[str, dict]) -> float:
+    total = len(results)
+    if not total:
+        return 0.0
+    passed = sum(1 for r in results.values() if r.get("passed"))
+    return round(passed / total, 4)
+
+
+def diff_reports(old: dict, new: dict) -> dict:
+    """Compare two run-report payloads (as written by ``--report``).
+
+    Returns the case names that regressed (passed -> failed), improved
+    (failed -> passed), were added, or were removed, plus each run's
+    pass rate.
+    """
+    old_results = {r["case"]: r for r in old["results"]}
+    new_results = {r["case"]: r for r in new["results"]}
+    common = old_results.keys() & new_results.keys()
+    return {
+        "regressions": sorted(
+            c
+            for c in common
+            if old_results[c].get("passed") and not new_results[c].get("passed")
+        ),
+        "improvements": sorted(
+            c
+            for c in common
+            if not old_results[c].get("passed") and new_results[c].get("passed")
+        ),
+        "added": sorted(new_results.keys() - old_results.keys()),
+        "removed": sorted(old_results.keys() - new_results.keys()),
+        "old_pass_rate": _pass_rate(old_results),
+        "new_pass_rate": _pass_rate(new_results),
+    }

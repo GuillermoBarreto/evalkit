@@ -111,3 +111,13 @@ def test_dict_provider_rejects_non_mapping_fixtures(tmp_path):
     with pytest.raises(SystemExit) as excinfo:
         main(["run", str(suite), "--provider", "dict", "--fixtures", str(bad)])
     assert "JSON object" in str(excinfo.value)
+
+
+def test_dict_provider_requires_fixtures_flag(tmp_path):
+    import pytest
+
+    suite = tmp_path / "evals.yaml"
+    suite.write_text("- name: a\n  prompt: hi\n  expected: hi\n  judge: contains\n")
+    with pytest.raises(SystemExit) as excinfo:
+        main(["run", str(suite), "--provider", "dict"])
+    assert "--fixtures" in str(excinfo.value)
