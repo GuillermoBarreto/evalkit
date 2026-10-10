@@ -52,7 +52,11 @@ def cmd_run(args) -> int:
     )
     if args.report:
         payload = {"summary": summary, "results": [r.to_dict() for r in results]}
-        Path(args.report).write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        report_path = Path(args.report)
+        # Create missing parent dirs so --report runs/nightly.json works
+        # instead of crashing with FileNotFoundError.
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         print(f"Report written to {args.report}")
     if not 0 <= args.fail_under <= 1:
         raise SystemExit("evalkit: --fail-under must be between 0 and 1.")
