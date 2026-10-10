@@ -52,9 +52,15 @@ def cmd_run(args) -> int:
     )
     if args.report:
         payload = {"summary": summary, "results": [r.to_dict() for r in results]}
-        Path(args.report).write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        report_path = Path(args.report)
+        # Create missing parent dirs so --report runs/nightly.json works
+        # instead of crashing with FileNotFoundError.
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         print(f"Report written to {args.report}")
-    return 0 if summary["failed"] == 0 else 1
+    if not 0 <= args.fail_under <= 1:
+        raise SystemExit("evalkit: --fail-under must be between 0 and 1.")
+    return 0 if summary["pass_rate"] >= args.fail_under else 1
 
 
 def cmd_validate(args) -> int:
@@ -69,7 +75,8 @@ def cmd_validate(args) -> int:
         if case.name in seen:
             warnings.append(f"duplicate case name {case.name!r}")
         seen.add(case.name)
-        if case.expected == "" and case.judge in ("contains", "exact"):
+        if case.expected == "" and case.judge in ("contains", "exact", "regex"):
+            # An empty pattern matches everything, so the case always passes.
             warnings.append(
                 f"[{case.name}] empty 'expected' with judge {case.judge!r}: "
                 "the case always passes"
@@ -154,6 +161,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Model name for the openai-compatible provider.",
     )
     run.add_argument("--report", help="Write a JSON report to this path.")
+    run.add_argument(
+        "--fail-under",
+        type=float,
+        default=1.0,
+        metavar="RATE",
+        help="Fail unless the pass rate is at least RATE (0-1, default: 1.0).",
+    )
     run.set_defaults(func=cmd_run)
     validate = sub.add_parser(
         "validate", help="Check a suite file without running any provider."
