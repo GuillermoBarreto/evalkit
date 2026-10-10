@@ -71,7 +71,8 @@ def cmd_validate(args) -> int:
         if case.name in seen:
             warnings.append(f"duplicate case name {case.name!r}")
         seen.add(case.name)
-        if case.expected == "" and case.judge in ("contains", "exact"):
+        if case.expected == "" and case.judge in ("contains", "exact", "regex"):
+            # An empty pattern matches everything, so the case always passes.
             warnings.append(
                 f"[{case.name}] empty 'expected' with judge {case.judge!r}: "
                 "the case always passes"
