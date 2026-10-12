@@ -42,6 +42,57 @@ def test_cli_exit_code_is_one_on_failure(tmp_path):
     assert code == 1
 
 
+def test_cli_limit_runs_only_first_n_cases(tmp_path):
+    import pytest
+
+    suite = tmp_path / "evals.yaml"
+    suite.write_text(
+        "- name: first\n  prompt: Say hi.\n  expected: hi\n  judge: contains\n"
+        "- name: second\n  prompt: Say bye.\n  expected: bye\n  judge: contains\n"
+    )
+    fixtures = tmp_path / "fixtures.json"
+    fixtures.write_text(json.dumps({"Say hi.": "hi there", "Say bye.": "bye now"}))
+    report = tmp_path / "report.json"
+    code = main(
+        [
+            "run",
+            str(suite),
+            "--provider",
+            "dict",
+            "--fixtures",
+            str(fixtures),
+            "--limit",
+            "1",
+            "--report",
+            str(report),
+        ]
+    )
+    assert code == 0
+    payload = json.loads(report.read_text())
+    assert payload["summary"]["total"] == 1
+    assert payload["results"][0]["case"] == "first"
+
+
+def test_cli_limit_rejects_non_positive_values(tmp_path):
+    import pytest
+
+    suite, fixtures = _write_suite_and_fixtures(tmp_path)
+    with pytest.raises(SystemExit) as excinfo:
+        main(
+            [
+                "run",
+                str(suite),
+                "--provider",
+                "dict",
+                "--fixtures",
+                str(fixtures),
+                "--limit",
+                "0",
+            ]
+        )
+    assert "--limit" in str(excinfo.value)
+
+
 def test_missing_suite_file_exits_cleanly(tmp_path):
     import pytest
 
@@ -121,3 +172,4 @@ def test_dict_provider_requires_fixtures_flag(tmp_path):
     with pytest.raises(SystemExit) as excinfo:
         main(["run", str(suite), "--provider", "dict"])
     assert "--fixtures" in str(excinfo.value)
+

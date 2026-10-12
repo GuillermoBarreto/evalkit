@@ -4,7 +4,7 @@ A tiny YAML-driven eval harness for LLM prompts and agents. Write your expected 
 
 ## Why
 
-Prompts drift. A small wording tweak, a model swap, or a new system prompt can silently change what your app says. evalkit gives you cheap, repeatable prompt regression tests: deterministic judges (exact, contains, regex), offline fixtures for CI, and a real API provider when you want live runs.
+Prompts drift. A small wording tweak, a model swap, or a new system prompt can silently change what your app says. evalkit gives you cheap, repeatable prompt regression tests: deterministic judges (exact, contains, regex, json_contains), offline fixtures for CI, and a real API provider when you want live runs.
 
 ## Install
 
@@ -64,6 +64,23 @@ Try the bundled example with no setup:
 evalkit run examples/evals.yaml --provider dict --fixtures examples/fixtures.json
 ```
 
+Quick smoke run over only the first few cases:
+
+```bash
+evalkit run suite.yaml --provider dict --fixtures fixtures.json --limit 5
+```
+
+For models that return structured output, the `json_contains` judge checks that
+the output is valid JSON containing every expected key/value pair (`expected`
+is a JSON object; nested values use dot-separated paths):
+
+```yaml
+- name: structured-answer
+  prompt: "Reply as JSON with a score field."
+  expected: '{"score": 9}'
+  judge: json_contains
+```
+
 Lint a suite without spending any model calls — duplicate names, empty
 `expected` values that always pass, and unknown judges:
 
@@ -96,3 +113,4 @@ in the summary, so you can see which judge type is failing most.
 - JSONL datasets and dataset transforms
 - LLM-as-judge providers
 - Parallel case execution and cost/latency tracking
+
