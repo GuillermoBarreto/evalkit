@@ -1,7 +1,8 @@
-"""Deterministic judges: exact, contains, and regex matching."""
+"""Deterministic judges: exact, contains, regex, and JSON matching."""
 
 from __future__ import annotations
 
+import json
 import re
 
 
@@ -20,10 +21,39 @@ def regex_match(output: str, pattern: str) -> bool:
     return re.search(pattern, output, re.DOTALL) is not None
 
 
+def json_contains(output: str, expected: str) -> bool:
+    """True when the output is valid JSON containing every expected key/value pair.
+
+    ``expected`` must be a JSON object; each of its top-level keys must exist in
+    the parsed output with an equal value. Nested values can be addressed with
+    dot-separated paths, e.g. ``{"model.name": "gpt-4o"}`` matches
+    ``{"model": {"name": "gpt-4o"}}``. Returns False when the output or the
+    expected value is not valid JSON (or the expected value is not an object),
+    so malformed cases fail the case instead of crashing the run.
+    """
+    try:
+        payload = json.loads(output)
+        checks = json.loads(expected)
+    except ValueError:
+        return False
+    if not isinstance(checks, dict):
+        return False
+    for path, wanted in checks.items():
+        current = payload
+        for part in str(path).split("."):
+            if not isinstance(current, dict) or part not in current:
+                return False
+            current = current[part]
+        if current != wanted:
+            return False
+    return True
+
+
 JUDGES = {
     "exact": exact_match,
     "contains": contains,
     "regex": regex_match,
+    "json_contains": json_contains,
 }
 
 
