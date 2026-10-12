@@ -40,6 +40,12 @@ def cmd_run(args) -> int:
         cases = load_suite(args.suite)
     except (OSError, ValueError) as exc:
         raise SystemExit(f"evalkit: {exc}") from exc
+    # Validate before spending any provider calls: a bad --limit should fail
+    # fast, not after the run.
+    if args.limit is not None and args.limit < 1:
+        raise SystemExit("evalkit: --limit must be a positive integer.")
+    if args.limit is not None:
+        cases = cases[: args.limit]
     results = run_suite(cases, provider)
     summary = summarize(results)
     for r in results:
@@ -160,6 +166,13 @@ def build_parser() -> argparse.ArgumentParser:
         default="gpt-4o-mini",
         help="Model name for the openai-compatible provider.",
     )
+    run.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Run only the first N cases (quick smoke run; default: all cases).",
+    )
     run.add_argument("--report", help="Write a JSON report to this path.")
     run.add_argument(
         "--fail-under",
@@ -197,3 +210,4 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
